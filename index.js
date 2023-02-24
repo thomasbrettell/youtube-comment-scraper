@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer';
 import { isM2 } from './utils.js';
 import { selectors } from './constants.js';
-import { URL, targetName, targetId } from './targets.js';
+import { URL } from './target.js';
 
 const browserOptions = {
   headless: false,
@@ -22,33 +22,10 @@ const runScrape = async () => {
 
   await scrollPage(page);
 
-  await page.evaluate(
-    ({ selectors, targetId, targetName }) => {
-      const comments = document.querySelectorAll(selectors.comment);
-
-      let found = false;
-
-      for (let i = 0; i < comments.length; i++) {
-        const comment = comments[i];
-        const author = comment
-          .querySelector(selectors.commentAuthor)
-          .innerText.trim();
-
-        console.log(author);
-
-        if (author === targetName || author === targetId) {
-          comment.scrollIntoView();
-          found = true;
-          break;
-        }
-      }
-
-      if (!found) {
-        console.log('Could not find comment');
-      }
-    },
-    { selectors, targetName, targetId }
-  );
+  await page.evaluate((selectors) => {
+    const comments = document.querySelectorAll(selectors.comment);
+    console.log(comments);
+  }, selectors);
 };
 runScrape();
 
@@ -57,14 +34,16 @@ const waitForTime = (milliseconds) => {
 };
 
 const scrollPage = async (page) => {
-  await page.evaluate(() => {
-    window.scrollTo(0, document.querySelector('ytd-app').scrollHeight);
-  });
+  await page.evaluate((selectors) => {
+    window.scrollTo(0, document.querySelector(selectors.app).scrollHeight);
+  }, selectors);
+
   await waitForTime(1000);
-  const atEnd = await page.evaluate(() => {
-    const app = document.querySelector('ytd-app');
+
+  const atEnd = await page.evaluate((selectors) => {
+    const app = document.querySelector(selectors.app);
     return window.innerHeight + window.scrollY >= app.scrollHeight;
-  });
+  }, selectors);
 
   if (!atEnd) {
     await scrollPage(page);
